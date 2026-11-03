@@ -1,7 +1,7 @@
 """Supabase Auth REST lookup for isolated preview, with public key only.
 
-Configure SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY on the server.
-Never use a service_role/secret key. Does not change any Supabase data.
+Use existing Studio SUPABASE_ANON_KEY or optional SUPABASE_PUBLISHABLE_KEY.
+Never use a service_role/secret key. Does not change Supabase data.
 """
 import os
 import httpx
@@ -9,8 +9,9 @@ import httpx
 
 async def lookup_supabase_user(access_token: str):
     url = os.environ["SUPABASE_URL"].rstrip("/")
-    key = os.environ["SUPABASE_PUBLISHABLE_KEY"]
-    if not url.startswith("https://") or not key:
+    key = os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY", "")
+    if (not url.startswith("https://") or ".supabase.co" not in url
+            or not key or key.startswith(("sb_secret_", "service_role"))):
         raise ValueError("Invalid Supabase preview configuration")
     async with httpx.AsyncClient(timeout=5.0, follow_redirects=False) as client:
         response = await client.get(
