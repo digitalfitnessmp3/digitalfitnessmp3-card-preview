@@ -66,6 +66,12 @@ async function refresh(){
   if(n!==generation)return;
   const result=await call('/api/card/me','GET',t);
   if(n!==generation)return;
+  // Display name only, never an authorization signal; account permission came from /api/card/me.
+  const person=await window.DFMP3AdminAuth.getUser();
+  if(n!==generation||window.DFMP3AdminAuth.isSignedIn()!==true)return;
+  const m=person?.user_metadata||{};
+  const candidate=[m.display_name,m.full_name,m.name].find(x=>typeof x==='string'&&x.trim().length>0);
+  $('holder').textContent=candidate?candidate.trim().slice(0,60):'Membro AlphaBeat';
   issue.disabled=false;
   if(result.status==='active'){status.textContent='Tessera BASIC attiva. Per mostrare il codice, premi Genera / rinnova QR.';revoke.disabled=false;}
   else if(result.status==='not_issued'){status.textContent='La tua tessera QR non è stata ancora emessa.';}
@@ -75,7 +81,7 @@ async function refresh(){
  }catch(e){if(n===generation)status.textContent=e.message||'Verifica non disponibile.';}
 }
 issue.addEventListener('click',async()=>{
- const n=++generation;reset();status.textContent='Generazione QR in corso…';
+ const n=++generation;shell.replaceChildren();issue.disabled=true;revoke.disabled=true;status.textContent='Generazione QR in corso…';
  try{
   const t=await token();const res=await call('/api/card/issue','POST',t);
   if(n!==generation)return;
@@ -87,7 +93,7 @@ issue.addEventListener('click',async()=>{
  }catch(e){if(n===generation){reset();status.textContent=e.message||'QR non disponibile.';}}
 });
 revoke.addEventListener('click',async()=>{
- const n=++generation;reset();status.textContent='Revoca in corso…';
+ const n=++generation;shell.replaceChildren();issue.disabled=true;revoke.disabled=true;status.textContent='Revoca in corso…';
  try{const t=await token();const res=await call('/api/card/revoke','POST',t);
  if(n!==generation)return;if(res.status!=='revoked')throw Error('Revoca non confermata.');
  status.textContent='QR revocato. Puoi richiederne uno nuovo.';issue.disabled=false;
