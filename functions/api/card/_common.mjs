@@ -6,7 +6,7 @@ export const json = (data, status=200) => new Response(JSON.stringify(data), {st
   'x-content-type-options':'nosniff'
 }});
 export const disabled = () => json({status:'not_enabled'},503);
-export const isEnabled = env => env.CARD_QA_ENABLED === 'true' && !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY && !!env.CARD_PUBLIC_ORIGIN && !!env.CARD_QA_USER_ID && env.CARD_QA_ACCOUNT_CLASS === 'basic_non_admin_verified';
+export const isEnabled = env => env.CARD_QA_ENABLED === 'true' && !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY && !!env.CARD_PUBLIC_ORIGIN && !!env.CARD_QA_USER_ID && env.CARD_QA_ACCOUNT_CLASS === 'basic_non_admin_verified' && !!env.CARD_ADMIN_USER_IDS;
 export function cfg(env){
   const url = new URL(env.SUPABASE_URL);
   if(url.protocol!=='https:' || url.username || url.password || url.search || url.hash) throw Error('invalid_supabase_url');
@@ -38,9 +38,11 @@ export async function verifyMember(request,env){
   const user=await r.json();
   if(user.id!==env.CARD_QA_USER_ID || !user.email_confirmed_at)return null;
   const m=user.app_metadata||{};
+  if(m.is_admin===true || m.is_owner===true || m.is_staff===true || m.is_qa===true)return null;
   const roles=[m.role,m.user_role,m.account_role,m.access_level].map(x=>String(x||'').toLowerCase());
   if(roles.some(x=>/(^|[^a-z])(admin|owner|staff|superuser|qa)([^a-z]|$)/.test(x)))return null;
-  const adminIds=(env.CARD_ADMIN_USER_IDS||'').split(',').map(x=>x.trim());
+  const adminIds=(env.CARD_ADMIN_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(adminIds.length===0 || adminIds.some(x=>!/^[0-9a-f-]{36}$/i.test(x)))return null;
   if(adminIds.includes(user.id))return null;
   return user.id;
 }
