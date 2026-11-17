@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="it">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow,noarchive"><title>AlphaBeat World Card · Verifica QR</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:28px;min-height:100vh;background:#101017;color:#fff;display:grid;place-items:center;font:16px system-ui,sans-serif}main{width:min(100%,430px)}.card{padding:26px;border-radius:22px;background:linear-gradient(125deg,#ed369f,#f26367,#ffa64d);color:#fff;box-shadow:0 20px 65px #0009}.brand{font-size:20px;font-weight:850;letter-spacing:.04em}.tier{font-size:14px;letter-spacing:.2em;font-weight:700;margin:40px 0 0}.status{border:1px solid #62566a;border-radius:12px;margin-top:20px;padding:16px;background:#211f29}h1{font-size:21px}p{line-height:1.45;color:#d6cedb}a{color:#82f6dd}
+</style>
+</head>
+<body><main><section class="card"><div class="brand">ALPHABEAT WORLD ⚡</div><div class="tier">WORLD CARD · BASIC</div></section><h1>Verifica della tessera QR</h1><div role="status" aria-live="polite" class="status" id="status">Controllo stato della tessera…</div><p>La scansione non effettua il login, non rivela dati personali e non concede accesso ai servizi riservati.</p><a href="https://digitalfitnessmp3.com/" rel="noopener noreferrer">Torna a DigitalFitnessMP3</a></main>
+<script>
+'use strict';
+(async()=>{
+  const label=document.getElementById('status');
+  const code=new URLSearchParams(location.hash.slice(1)).get('code');
+  // Remove the bearer token from the visible address and browser history as soon as read.
+  history.replaceState({},'',location.pathname);
+  if(!/^[A-Za-z0-9_-]{43}$/.test(code||'')){label.textContent='Codice QR non valido.';return;}
+  try{
+    const r=await fetch('/api/card/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code}),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
+    if(!r.ok){label.textContent='Verifica temporaneamente non disponibile.';return;}
+    const data=await r.json();
+    label.textContent=({valid:'Tessera BASIC valida.',invalid:'Tessera non riconosciuta.',revoked:'Tessera revocata.',expired:'Tessera scaduta.',not_enabled:'Verifica QA non attiva.'})[data.status]||'Verifica non disponibile.';
+  }catch{label.textContent='Verifica non disponibile.';}
+})();
+</script></body></html>
