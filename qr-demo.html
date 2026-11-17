@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>AlphaBeat World Card — QR demo isolata</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#101017;color:white;font-family:system-ui,-apple-system,Segoe UI,sans-serif;display:grid;place-items:center;padding:24px}
+main{width:min(100%,500px)}
+h1{font-size:1.45rem;margin:0 0 10px}p{color:#cfc9d6;line-height:1.5}
+.card{border-radius:24px;padding:24px;min-height:280px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;position:relative;background:linear-gradient(125deg,#ff43b4 0%,#ee3f9b 35%,#f36c64 72%,#ffac48 100%);box-shadow:0 0 26px #f63a9760,0 20px 45px #0007}
+.card:before{content:"";position:absolute;inset:-80px;background:radial-gradient(circle at 75% 10%,#fff7,transparent 38%);pointer-events:none}
+.card>*{position:relative}
+.top{display:flex;align-items:start;justify-content:space-between;gap:10px}
+.brand{font-weight:850;letter-spacing:.035em;font-size:clamp(16px,4vw,22px)}
+.bolt{font-size:30px;color:#ffe26b;text-shadow:0 0 12px #ffed83}
+.tier{font-size:12px;letter-spacing:.2em;font-weight:800}
+.bottom{display:flex;justify-content:space-between;gap:14px;align-items:end}
+.name{font-size:clamp(20px,5vw,27px);font-weight:750;overflow-wrap:anywhere}
+.small{font-size:11px;opacity:.95}
+.qr-wrap{flex:none;background:white;color:#202027;padding:6px;border-radius:10px;text-align:center;box-shadow:0 4px 14px #0003}
+.qr-wrap svg{display:block;width:clamp(88px,22vw,112px);height:auto;shape-rendering:crispEdges}
+.qr-caption{font-size:9px;font-weight:800;letter-spacing:.1em;padding-top:3px}
+label{display:block;margin:20px 0 8px;color:#e6dfe6;font-size:13px}
+input{width:100%;border-radius:12px;padding:13px;background:#22212b;border:1px solid #555;color:white;font:inherit}
+.note{margin-top:15px;padding:13px 15px;border:1px solid #58515d;border-radius:12px;background:#211f29;color:#dcd8e0;font-size:13px;line-height:1.5}
+.note strong{color:#fff}a{color:#86eed6}
+@media(max-width:370px){body{padding:14px}.card{padding:17px;min-height:230px}.bottom{gap:8px}.small{font-size:10px}.brand{font-size:15px}.name{font-size:19px}.qr-wrap svg{width:82px}}
+</style>
+</head>
+<body>
+<main>
+<h1>AlphaBeat World Card — QR demo</h1>
+<p>Anteprima indipendente per testare la scansione, senza login e senza account reali.</p>
+<section class="card" aria-label="Simulazione tessera BASIC con QR dimostrativo">
+  <div class="top"><span class="brand">ALPHABEAT WORLD</span><span class="bolt" aria-hidden="true">⚡</span></div>
+  <div class="tier">BASIC MEMBER · DEMO</div>
+  <div class="bottom">
+    <div><div class="small">TITOLARE DIMOSTRATIVO</div><div class="name" id="holder">MEMBRO DEMO</div><div class="small">La tua musica. Il tuo ritmo.</div></div>
+    <div class="qr-wrap"><svg id="qr" viewBox="0 0 37 37" role="img" aria-label="QR di prova per aprire digitalfitnessmp3.com"></svg><div class="qr-caption">QR DEMO</div></div>
+  </div>
+</section>
+<label for="holder-input">Nome di prova sulla tessera</label>
+<input id="holder-input" maxlength="45" placeholder="Scrivi un nome fittizio" autocomplete="off">
+<div class="note"><strong>Solo test, non una tessera verificata.</strong> Il QR punta a <a href="https://digitalfitnessmp3.com/" target="_blank" rel="noopener noreferrer">digitalfitnessmp3.com</a> e non contiene nome, identificativi, ruoli, token o credenziali. Non concede accesso a profili o abbonamenti. Nessun dato viene inviato o salvato. L'account amministratore non viene usato né modificato.</div>
+</main>
+<script>
+"use strict";
+const QR_ROWS = `
+11111110110110000110001111111
+10000010011100001001001000001
+10111010001011011111001011101
+10111010101000111010101011101
+10111010101011101000001011101
+10000010110111110011001000001
+11111110101010101010101111111
+00000000110010100101000000000
+10001011110011111111011111001
+00111101000110000000011111111
+00111110110011110000101000001
+01101101111111011110111111011
+01110010101111000111110000010
+11001101000001101110001111111
+01001011100100001010011011101
+11000000101000100101101000011
+11100110000101111100110000010
+11001101111100000010001111011
+00101010010111110000000000101
+00110100110001011110111110011
+11111111011011000101111111001
+00000000100001101110100010001
+11111110111010001011101011101
+10000010001100100111100010010
+10111010101111110101111111011
+10111010010100000110110000010
+10111010011111110110110001111
+10000010001110100110101101011
+11111110111101010110101111010
+`.trim().split("\n");
+const NS="http://www.w3.org/2000/svg", svg=document.getElementById("qr");
+const bg=document.createElementNS(NS,"rect");bg.setAttribute("width","37");bg.setAttribute("height","37");bg.setAttribute("fill","#fff");svg.appendChild(bg);
+let d="";
+QR_ROWS.forEach((row,y)=>{for(let x=0;x<row.length;x++)if(row[x]==="1")d+="M"+(x+4)+" "+(y+4)+"h1v1h-1z";});
+const path=document.createElementNS(NS,"path");path.setAttribute("d",d);path.setAttribute("fill","#101017");svg.appendChild(path);
+const input=document.getElementById("holder-input"),holder=document.getElementById("holder");
+input.addEventListener("input",()=>{holder.textContent=input.value.trim()||"MEMBRO DEMO";});
+</script>
+</body>
+</html>
