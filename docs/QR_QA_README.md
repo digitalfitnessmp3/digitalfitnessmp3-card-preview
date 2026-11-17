@@ -38,3 +38,23 @@ Non usare mai l'account amministratore, né il quinto account esterno privo di c
 - Ruoli e permessi verificati server-side, mai da etichette o `user_metadata` modificabile.
 - Il pilot QA non concede privilegi: ogni accesso riservato è autenticato separatamente.
 - Questa PR non crea servizi, non avvia deploy, non interroga account esterni e non genera costi.
+
+## Avanzamento 17 novembre 2026 — collegamento profilo (codice QA)
+
+La tabella `public.card_qr_qa_tokens` è stata creata nel progetto Supabase esistente e verificata: RLS attiva, nessun permesso diretto di SELECT per `anon` o `authenticated`, zero codici emessi al momento della verifica. **La tabella è reale; la funzione QR non è attiva sul sito.**
+
+- `GET /api/card/me`: verifica lo stato della tessera del SOLO account pilot, senza restituire token, email o identificativi.
+- `POST /api/card/issue`: emette e sostituisce un codice, lo restituisce solo nella risposta di quel momento; il backend conserva solo il digest SHA-256.
+- `POST /api/card/revoke`: revoca il codice. `POST /api/card/verify`: verifica senza login e non permette accessi riservati.
+- `card-qa.html`: interfaccia mobile BASIC che legge la sessione esistente `DFMP3AdminAuth` soltanto se montata sullo stesso origin, mai su un dominio che non condivide l'autenticazione.
+- `vendor/qrcode.min.js`: generatore MIT incluso localmente; nessun token è inviato a servizi di terze parti.
+- `qa-tests/card-status.test.mjs` e `qa-tests/card-qa-ui.test.mjs`: nuovi contratti QA. Eseguire `npm test` localmente prima di ogni pubblicazione.
+
+### **Blocchi per rilascio e prova con l'account**
+
+1. Non basta l'email confermata per l'autorizzazione. Verificare e registrare un singolo UID pilot BASIC non-admin, controllando anche la lista completa degli amministratori in `CARD_ADMIN_USER_IDS`. Le protezioni rifiutano richieste se quest'ultima manca.
+2. Configurare segreti e variabili esclusivamente lato server, su un servizio QA isolato con **stesso origin** della pagina e protezione antiabuso; non aggiungere privilegi al database, account o abbonamenti.
+3. Collegare la pagina al profilo dell'ambiente QA. La UI di questo repo non può funzionare da sola su GitHub perché non contiene il sistema di login.
+4. Testare con secondo dispositivo: emissione, scansione, stato attivo, rigenerazione, revoca, logout, account admin, URL inventati e sessione scaduta.
+5. Non attivare o pubblicare alcuna tessera sul sito live prima del collaudo end-to-end e della verifica del metodo di deploy. Non effettuare merge automatico della PR.
+6. Il QR emesso non è recuperabile dal database in chiaro: dopo un refresh, l'utente può visualizzare lo stato della card, ma deve rigenerare il QR. Questa è una limitazione intenzionale del **pilot**; per una card stabile servirà un archivio cifrato server-side o una diversa architettura.
