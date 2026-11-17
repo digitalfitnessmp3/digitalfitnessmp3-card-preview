@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>AlphaBeat World Card · QR personale (QA)</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0c0d18;color:#fff}
+*{box-sizing:border-box}body{margin:0;padding:24px;min-height:100vh;display:grid;place-items:center}
+main{width:min(100%,500px)}h1{font-size:1.5rem;margin:0 0 12px}p{line-height:1.5;color:#d0d0df}
+.card{border-radius:24px;min-height:270px;padding:25px;display:flex;flex-direction:column;justify-content:space-between;gap:22px;background:linear-gradient(125deg,#f737a4 0%,#ed4688 40%,#f37557 76%,#ffab45 100%);box-shadow:0 17px 42px #0008}
+.brand{font-weight:850;letter-spacing:.035em}.tier{font-size:.78rem;font-weight:850;letter-spacing:.18em}
+.bottom{display:flex;align-items:end;justify-content:space-between;gap:12px}
+.name{font-weight:800;font-size:clamp(21px,5vw,27px)}.small{font-size:11px}
+#qr-shell{background:#fff;padding:8px;border-radius:12px;width:136px;min-height:136px;display:grid;place-items:center}
+#qr-shell:empty::after{content:'QR non emesso';color:#403344;font-weight:750;font-size:12px;text-align:center}
+#qr-shell img,#qr-shell canvas{display:block;width:120px!important;height:120px!important;image-rendering:pixelated}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0}
+button{cursor:pointer;font:inherit;font-weight:750;border:1px solid #a09aaa;background:#262237;color:#fff;border-radius:12px;padding:12px 18px}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.primary{background:#82e6d6;border:0;color:#071a20}
+#status{border:1px solid #625c73;border-radius:12px;padding:12px;min-height:48px;line-height:1.4;background:#181728}
+small{color:#b4acc4}.note{font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<h1>AlphaBeat World Card <span aria-hidden="true">⚡</span></h1>
+<p>QR personale · collaudo isolato. Per accedere serve la sessione ufficiale DigitalFitnessMP3.</p>
+<section class="card" aria-label="AlphaBeat World Card BASIC di prova">
+ <div class="brand">ALPHABEAT WORLD</div><div class="tier">BASIC MEMBER · QA</div>
+ <div class="bottom"><div><div class="small">TESSERA PERSONALE</div><div id="holder" class="name">Membro AlphaBeat</div><div class="small">La tua musica. Il tuo ritmo.</div></div><div id="qr-shell" aria-label="QR personale generato localmente"></div></div>
+</section>
+<div class="controls">
+<button id="check" type="button">Controlla tessera</button>
+<button id="issue" class="primary" type="button" disabled>Genera / rinnova QR</button>
+<button id="revoke" type="button" disabled>Revoca QR</button>
+</div>
+<div id="status" role="status" aria-live="polite">Verifica dell'account in corso…</div>
+<p class="note">Il QR si crea solo dopo un accesso verificato. La scansione mostra esclusivamente lo stato della tessera; non concede login, download, pagamenti o privilegi. Se rinnovi il codice, il precedente viene invalidato. Il codice non viene salvato nel browser.</p>
+<small>QA soltanto. Nessun dato account viene letto dalla pagina se il servizio di autenticazione non è disponibile.</small>
+</main>
+<script src="./vendor/qrcode.min.js"></script>
+<script>
+'use strict';
+(()=>{
+let generation=0;
+const $=id=>document.getElementById(id), status=$('status'), issue=$('issue'), revoke=$('revoke'), check=$('check'), shell=$('qr-shell');
+function reset(){shell.replaceChildren();issue.disabled=true;revoke.disabled=true;$('holder').textContent='Membro AlphaBeat';}
+async function token(){const auth=window.DFMP3AdminAuth;
+ if(!auth||auth.isSignedIn()!==true||typeof auth.getToken!=='function')throw Error('Effettua il login dal sito ufficiale.');
+ return await auth.getToken();
+}
+async function call(path,method,authorization){
+ const r=await fetch(path,{method,headers:{Authorization:'Bearer '+authorization,Accept:'application/json'},credentials:'same-origin',cache:'no-store',referrerPolicy:'no-referrer',redirect:'error'});
+ const data=await r.json().catch(()=>({status:'service_unavailable'}));
+ if(!r.ok)throw Error(data.status==='not_enabled'?'Collaudo QR non ancora attivo.':'Servizio QR non disponibile o accesso negato.');
+ return data;
+}
+async function refresh(){
+ const n=++generation;reset();
+ try{
+  const t=await token();
+  if(n!==generation)return;
+  const result=await call('/api/card/me','GET',t);
+  if(n!==generation)return;
+  issue.disabled=false;
+  if(result.status==='active'){status.textContent='Tessera BASIC attiva. Per mostrare il codice, premi Genera / rinnova QR.';revoke.disabled=false;}
+  else if(result.status==='not_issued'){status.textContent='La tua tessera QR non è stata ancora emessa.';}
+  else if(result.status==='revoked'){status.textContent='Codice revocato. Puoi richiedere un nuovo codice.';}
+  else if(result.status==='expired'){status.textContent='Codice scaduto. Puoi richiederne uno nuovo.';}
+  else{status.textContent='Stato tessera non disponibile.';issue.disabled=true;}
+ }catch(e){if(n===generation)status.textContent=e.message||'Verifica non disponibile.';}
+}
+issue.addEventListener('click',async()=>{
+ const n=++generation;reset();status.textContent='Generazione QR in corso…';
+ try{
+  const t=await token();const res=await call('/api/card/issue','POST',t);
+  if(n!==generation)return;
+  if(res.status!=='issued'||typeof res.verification_url!=='string')throw Error('Risposta QR inattesa.');
+  const u=new URL(res.verification_url);
+  if(u.protocol!=='https:'||u.search||!/^#code=[A-Za-z0-9_-]{43}$/.test(u.hash)||typeof QRCode!=='function')throw Error('QR non valido.');
+  new QRCode(shell,{text:u.href,width:120,height:120,colorDark:'#101017',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  issue.disabled=false;revoke.disabled=false;status.textContent='QR generato. Scansiona con un altro telefono per verificarlo.';
+ }catch(e){if(n===generation){reset();status.textContent=e.message||'QR non disponibile.';}}
+});
+revoke.addEventListener('click',async()=>{
+ const n=++generation;reset();status.textContent='Revoca in corso…';
+ try{const t=await token();const res=await call('/api/card/revoke','POST',t);
+ if(n!==generation)return;if(res.status!=='revoked')throw Error('Revoca non confermata.');
+ status.textContent='QR revocato. Puoi richiederne uno nuovo.';issue.disabled=false;
+ }catch(e){if(n===generation)status.textContent=e.message||'Revoca non disponibile.';}
+});
+check.addEventListener('click',refresh);
+document.addEventListener('dfmp3:auth-changed',()=>{generation++;reset();status.textContent='Sessione cambiata. Premi Controlla tessera.';});
+refresh();
+})();
+</script>
+</body>
+</html>
